@@ -199,9 +199,9 @@ def lanczos_algorithm(H_set: list[np.ndarray], O_initial_set: list[np.ndarray]):
     N = int(np.log2(H_set[0].shape[0]))
     K_max = 4 ** N - 1
 
-    steps = 0 # steps of the algorithm
     dimension = 0 # local Hausdorff dimension
     operator_count = 0 # number of operators in the basis
+    operator_count_memory = [] # record of the number of operators in the basis
     O_basis = [[]] # memory of current operator basis
 
     # --- Initialization (n=0) ---
@@ -221,12 +221,12 @@ def lanczos_algorithm(H_set: list[np.ndarray], O_initial_set: list[np.ndarray]):
                 O_n = O_n / np.sqrt(norm_O_sq)
                 O_basis[0].append(O_n) 
     
-    steps += 1
+    operator_count_memory.append(len(O_basis[0]))
     operator_count += len(O_basis[0])
-    dimension += len(O_basis[0]) * steps
+    dimension += len(O_basis[0]) * 1
 
     # --- Main Loop ---
-    while operator_count < K_max and len(O_basis[-1]) > 0:
+    while operator_count < K_max and operator_count_memory[-1] > 0:
         # Apply Liouvillian
         O_basis.append([])
         for k in range(len(O_basis[-2])):
@@ -248,12 +248,11 @@ def lanczos_algorithm(H_set: list[np.ndarray], O_initial_set: list[np.ndarray]):
             O_basis.pop(0)
 
         # count the number of new basis
-        steps += 1
         operator_count += len(O_basis[-1])
-        dimension += len(O_basis[-1]) * steps
+        operator_count_memory.append(len(O_basis[-1]))
+        dimension += len(O_basis[-1]) * len(operator_count_memory)
 
-    return steps, operator_count, dimension
-
+    return len(operator_count_memory), operator_count, dimension, operator_count_memory
 
 
 # --- 4. Main Execution ---
@@ -286,12 +285,13 @@ def main():
 
         # --- Run Lanczos ---
         print("Running Lanczos algorithm...")
-        steps, operator_count, dimension = lanczos_algorithm(H_set, O_initial)
+        steps, operator_count, dimension, operator_count_memory = lanczos_algorithm(H_set, O_initial)
         steps_list.append(steps)
         operator_count_list.append(operator_count)
         dimension_list.append(dimension)
 
         print(f"steps: {steps}, operator_count: {operator_count}, dimension: {dimension}")
+        print(f"operator_count_memory: {operator_count_memory}")
 
     print(f"steps_list: {steps_list}")
     print(f"operator_count_list: {operator_count_list}")
